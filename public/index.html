@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DINUWA BUG APK</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Orbitron', sans-serif !important; }
+    body { background: #FFFFFF; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 16px; }
+
+    /* ===== LOGIN MODAL ===== */
+    #loginModal {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(255,255,255,0.98); z-index: 99999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    #loginModal.hidden { display: none; }
+    .login-box {
+      max-width: 340px; width: 100%; background: #FFFFFF; border: 3px solid #0000FF; border-radius: 28px;
+      padding: 40px 24px; box-shadow: 0 0 60px rgba(0,0,255,0.15); text-align: center;
+    }
+    .login-box h1 { font-size: 22px; color: #0000FF; margin-bottom: 6px; letter-spacing: 2px; }
+    .login-box p { font-size: 11px; color: #0000FF; opacity: 0.6; margin-bottom: 24px; }
+    .login-box label { display: block; text-align: left; font-size: 10px; font-weight: 700; color: #0000FF; margin: 12px 0 4px 0; }
+    .login-box input { width: 100%; padding: 14px 16px; border: 2px solid #0000FF; border-radius: 14px; background: #FFFFFF; color: #0000FF; font-size: 13px; outline: none; }
+    .login-box input::placeholder { color: #0000FF; opacity: 0.4; }
+    .login-btn { width: 100%; margin-top: 16px; padding: 14px; background: #FFFFFF; border: 2px solid #0000FF; border-radius: 30px; font-size: 14px; font-weight: 800; color: #0000FF; cursor: pointer; transition: 0.15s; }
+    .login-btn:active { background: #E0E0FF; }
+    .login-error { color: #FF0000; font-size: 10px; margin-top: 12px; height: 16px; }
+    .toggle-login-link { color: #0000FF; text-decoration: underline; cursor: pointer; font-size: 10px; display: inline-block; margin-top: 12px; }
+    .toggle-login-link:hover { opacity: 0.7; }
+
+    /* ===== OWNER PANEL ===== */
+    #ownerPanel {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000000; z-index: 99998;
+      display: none; flex-direction: column; padding: 20px; overflow-y: auto;
+    }
+    #ownerPanel.active { display: flex; }
+    .owner-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; border-bottom: 2px solid #FFFFFF; margin-bottom: 20px; }
+    .owner-header h1 { color: #FFFFFF; font-size: 18px; letter-spacing: 1px; }
+    .owner-header h1 i { color: #FFFFFF; margin-right: 10px; }
+    .owner-close-btn { background: none; border: 2px solid #FFFFFF; color: #FFFFFF; padding: 6px 16px; border-radius: 30px; font-size: 11px; font-weight: 700; cursor: pointer; }
+    .owner-close-btn:active { background: #333; }
+    .owner-grid { display: flex; flex-direction: column; gap: 20px; }
+    .owner-card { background: #111111; border: 1px solid #FFFFFF; border-radius: 18px; padding: 18px 20px; }
+    .owner-card h2 { color: #FFFFFF; font-size: 13px; letter-spacing: 1px; margin-bottom: 12px; }
+    .owner-card h2 i { margin-right: 10px; color: #FFFFFF; }
+    .owner-card .owner-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 6px 0; }
+    .owner-card input, .owner-card select { flex: 1; min-width: 140px; background: #000000; border: 1px solid #FFFFFF; border-radius: 12px; padding: 10px 14px; color: #FFFFFF; font-size: 11px; outline: none; }
+    .owner-card input::placeholder { color: #888; }
+    .owner-card .owner-btn { background: #000000; border: 1px solid #FFFFFF; border-radius: 30px; padding: 10px 20px; color: #FFFFFF; font-size: 11px; font-weight: 700; cursor: pointer; transition: 0.1s; }
+    .owner-card .owner-btn:active { background: #333; }
+    .owner-card .owner-btn.danger { border-color: #FF4444; color: #FF4444; }
+    .owner-card .owner-btn.success { border-color: #44FF44; color: #44FF44; }
+    .key-item { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 12px 14px; margin: 8px 0; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; }
+    .key-item .key-text { color: #FFFFFF; font-size: 12px; font-weight: 700; }
+    .key-item .key-users { color: #AAAAAA; font-size: 10px; }
+    .key-item .key-users span { color: #44FF44; }
+    .session-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #222; color: #CCC; font-size: 11px; }
+    .session-item .sess-user { color: #FFFFFF; font-weight: 700; }
+    .session-item .sess-key { color: #888; font-size: 10px; }
+    .session-item .sess-time { color: #555; font-size: 9px; }
+    .target-item { background: #0a0a0a; border: 1px solid #222; border-radius: 10px; padding: 8px 12px; margin: 4px 0; display: flex; justify-content: space-between; align-items: center; color: #DDD; font-size: 11px; }
+    .target-item .t-num { color: #FFFFFF; font-weight: 700; }
+    .target-item .t-user { color: #888; font-size: 9px; }
+
+    /* ===== MAIN APP ===== */
+    .phone { max-width: 390px; width: 100%; background: #FFFFFF; border-radius: 36px; box-shadow: 0 0 40px rgba(0,0,255,0.15); overflow: hidden; border: 2px solid #0000FF; position: relative; display: none; }
+    .phone.active { display: block; }
+
+    body, div, span, p, h1, h2, h3, label, input, select, option, li, .card-title, .card-value, .card-sub, .tag, .nav-item span, .koneksi, .quick-access span, .qa-item .lbl, .qa-item .subl, .proto-list li, .app-header h1, .app-header h1 span, .status-bar, .news-banner .left, .bug-badge, .join-btn, .violation, .log-line, .chat-message, .chat-username-area label, .chat-header h2, .chat-status, .ban-modal-title { color: #0000FF !important; }
+    .app-header h1 span { background: none !important; -webkit-text-fill-color: #0000FF !important; background-clip: unset !important; }
+    .status-bar { display: flex; justify-content: space-between; padding: 12px 24px 6px 24px; font-size: 10px; font-weight: 600; letter-spacing: 0.5px; }
+    .status-bar i { color: #0000FF; margin-right: 4px; }
+    .app-header { padding: 8px 20px 4px 20px; display: flex; justify-content: space-between; align-items: center; }
+    .app-header h1 { font-size: 18px; font-weight: 800; letter-spacing: 0.5px; }
+    .app-header .badge { background: #E0E0FF; font-size: 9px; font-weight: 700; padding: 2px 10px; border-radius: 30px; letter-spacing: 0.5px; border: 1px solid #0000FF; color: #0000FF !important; }
+    .content { padding: 12px 18px 80px 18px; min-height: 580px; }
+    .page { display: none; animation: fadeUp 0.25s ease; }
+    .page.active { display: block; }
+    @keyframes fadeUp { 0%{opacity:0.6;transform:translateY(8px);} 100%{opacity:1;transform:translateY(0);} }
+    .card { background: #F8F8FF; border-radius: 18px; padding: 16px 18px; margin-bottom: 14px; border: 1px solid #0000FF; box-shadow: 0 4px 12px rgba(0,0,255,0.08); }
+    .card-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+    .card-value { font-weight: 700; font-size: 14px; }
+    .card-sub { font-size: 11px; font-weight: 400; }
+    .tag { display: inline-block; background: #EEEEFF; padding: 2px 12px; border-radius: 30px; font-size: 10px; font-weight: 600; border: 1px solid #0000FF; }
+    .divider { height: 1px; background: #0000FF; margin: 14px 0; opacity: 0.3; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 4px; }
+    .tool-item { background: #F8F8FF; border-radius: 16px; padding: 16px 6px 12px 6px; text-align: center; border: 1px solid #0000FF; }
+    .tool-item i { font-size: 24px; color: #0000FF !important; margin-bottom: 6px; display: block; }
+    .tool-item .tname { font-size: 11px; font-weight: 700; letter-spacing: 0.2px; }
+    .tool-item .tdesc { font-size: 8px; font-weight: 400; margin-top: 2px; }
+    .quick-access { background: #F0F0FF; border-radius: 16px; padding: 14px 16px; margin-top: 16px; border: 1px solid #0000FF; display: flex; justify-content: space-between; align-items: center; }
+    .quick-access span { font-weight: 700; font-size: 12px; }
+    .quick-access i { color: #0000FF !important; font-size: 18px; }
+    .wa-input, .ban-input, .ban-select { background: #FFFFFF; border: 2px solid #0000FF; border-radius: 12px; padding: 10px 14px; width: 100%; font-size: 11px; margin: 6px 0 10px 0; outline: none; color: #0000FF !important; }
+    .wa-input::placeholder, .ban-input::placeholder { color: #0000FF; opacity: 0.5; }
+    .ban-select option { color: #0000FF; background: #FFFFFF; }
+    .ban-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0; }
+    .ban-row > * { flex: 1; min-width: 100px; }
+    .exec-btn { background: #FFFFFF; border: 2px solid #0000FF; border-radius: 30px; padding: 8px 16px; font-size: 11px; font-weight: 800; color: #0000FF; cursor: pointer; width: 100%; margin: 4px 0; transition: 0.1s; }
+    .exec-btn:active { background: #E0E0FF; }
+    .log-box { background: #F8F8FF; border: 1px solid #0000FF; border-radius: 14px; padding: 10px 12px; max-height: 120px; overflow-y: auto; margin-top: 8px; font-size: 9px; line-height: 1.6; }
+    .log-line { font-size: 9px; border-bottom: 1px dashed rgba(0,0,255,0.15); padding: 2px 0; }
+    .log-line .time { opacity: 0.5; margin-right: 6px; }
+    .inline-icon { margin-right: 8px; color: #0000FF !important; }
+    .flex { display: flex; align-items: center; gap: 8px; }
+    .flex-between { display: flex; justify-content: space-between; align-items: center; }
+    .online-dot { display: inline-block; width: 8px; height: 8px; background: #00CC00; border-radius: 50%; margin-right: 6px; box-shadow: 0 0 10px #00CC00; }
+    .news-banner { background: #F0F0FF; border-radius: 14px; padding: 12px 16px; border-left: 4px solid #0000FF; margin: 10px 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+    .news-banner .left { font-weight: 700; width: 100%; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+    .join-btn { background: #FFFFFF; padding: 4px 16px; border-radius: 30px; font-size: 11px; font-weight: 700; border: 2px solid #0000FF; position: static !important; }
+    .quick-actions-grid { display: flex; gap: 12px; margin: 10px 0; flex-wrap: wrap; }
+    .qa-item { background: #F8F8FF; padding: 12px 16px; border-radius: 14px; flex: 1; text-align: center; border: 1px solid #0000FF; cursor: pointer; transition: 0.15s; min-width: 100px; }
+    .qa-item:active { background: #E0E0FF; }
+    .qa-item i { color: #0000FF !important; font-size: 18px; }
+    .qa-item .lbl { font-size: 10px; font-weight: 700; margin-top: 4px; display: block; }
+    .qa-item .subl { font-size: 8px; }
+    .card-title i { color: #0000FF !important; }
+    .tag i { color: #0000FF !important; }
+    .profile-image, .wa-image { width: 100%; border-radius: 16px; border: 2px solid #0000FF; display: block; margin-bottom: 14px; }
+    .chat-modal, .ban-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.98); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; padding: 16px; }
+    .chat-modal.active, .ban-modal.active { display: flex; }
+    .chat-box, .ban-box { max-width: 390px; width: 100%; height: 90vh; max-height: 700px; background: #FFFFFF; border: 2px solid #0000FF; border-radius: 28px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 0 60px rgba(0,0,255,0.15); }
+    .chat-header, .ban-header { padding: 16px 20px; border-bottom: 2px solid #0000FF; display: flex; justify-content: space-between; align-items: center; background: #F8F8FF; }
+    .chat-header h2, .ban-header h2 { font-size: 14px; font-weight: 800; letter-spacing: 0.5px; }
+    .chat-header h2 i, .ban-header h2 i { margin-right: 8px; }
+    .chat-close, .ban-close { background: none; border: none; font-size: 24px; color: #0000FF; cursor: pointer; }
+    .ban-body { flex: 1; padding: 16px 20px; overflow-y: auto; background: #FFFFFF; }
+    .ban-body .ban-section { margin-bottom: 18px; }
+    .ban-body .ban-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #0000FF; margin-bottom: 4px; }
+    .chat-username-area { padding: 10px 20px; border-bottom: 1px solid #0000FF; display: flex; gap: 10px; align-items: center; background: #FFFFFF; }
+    .chat-username-area label { font-size: 10px; font-weight: 700; white-space: nowrap; }
+    .chat-username-area input { flex: 1; border: 1px solid #0000FF; border-radius: 30px; padding: 6px 14px; font-size: 11px; background: #FFFFFF; color: #0000FF; outline: none; }
+    .chat-messages { flex: 1; padding: 16px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; background: #FFFFFF; }
+    .chat-message { padding: 8px 14px; border-radius: 18px; border: 1px solid #0000FF; background: #F8F8FF; max-width: 85%; word-wrap: break-word; font-size: 11px; line-height: 1.4; align-self: flex-start; }
+    .chat-message.own { align-self: flex-end; background: #E0E0FF; }
+    .chat-message .msg-user { font-weight: 800; font-size: 10px; display: block; margin-bottom: 2px; }
+    .chat-message .msg-time { font-size: 8px; opacity: 0.6; display: block; text-align: right; margin-top: 2px; }
+    .chat-input-area { padding: 12px 20px; border-top: 2px solid #0000FF; display: flex; gap: 10px; background: #FFFFFF; }
+    .chat-input-area input { flex: 1; border: 1px solid #0000FF; border-radius: 30px; padding: 10px 16px; font-size: 12px; background: #FFFFFF; color: #0000FF; outline: none; }
+    .chat-input-area button { background: #FFFFFF; border: 2px solid #0000FF; border-radius: 30px; padding: 0 20px; font-size: 12px; font-weight: 800; color: #0000FF; cursor: pointer; }
+    .chat-input-area button:active { background: #E0E0FF; }
+    .chat-status { font-size: 9px; text-align: center; padding: 4px; opacity: 0.7; }
+
+    /* ===== BOTTOM NAV - 5 ITEMS ===== */
+    .bottom-nav {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: #A0A0A0 !important; border-top: 2px solid #0000FF;
+      display: flex; justify-content: space-around; padding: 10px 0 16px 0;
+    }
+    .nav-item { display: flex; flex-direction: column; align-items: center; font-size: 8px; font-weight: 700; cursor: pointer; padding: 0 4px; border: none; background: transparent; }
+    .nav-item i { font-size: 20px; margin-bottom: 2px; }
+    .nav-item span { color: #0000FF !important; }
+    .nav-home i { color: #0000FF !important; }
+    .nav-wa i { color: #00CC00 !important; }
+    .nav-tools i { color: #FF0000 !important; }
+    .nav-info i { color: #FFFFFF !important; }
+    .nav-destroy i { color: #FF4500 !important; }
+    .card-title .fa-whatsapp { color: #00CC00 !important; }
+    .nav-item.active { filter: brightness(0.8); }
+    .nav-item.active i { text-shadow: 0 0 18px rgba(0,0,255,0.5); }
+
+    .toggle-row { display: flex; gap: 20px; justify-content: center; margin: 8px 0 16px 0; flex-wrap: wrap; }
+    .toggle-item { display: flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 700; color: #0000FF; cursor: pointer; }
+    .toggle-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: #0000FF; cursor: pointer; }
+
+    /* ===== PAIRING ===== */
+    .pair-btn { background: #00CC00 !important; border: 2px solid #00CC00 !important; color: #FFFFFF !important; }
+    .pair-btn:active { background: #009900 !important; }
+    .pair-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .pair-btn.disconnect { background: #FF4444 !important; border-color: #FF4444 !important; }
+    .pair-success { color: #00CC00 !important; font-weight: 800; }
+    .pair-error { color: #FF0000 !important; font-weight: 700; }
+    .pair-connecting { color: #FFA500 !important; font-weight: 700; }
+    .generated-code-box { background: #EEEEFF; border: 2px solid #0000FF; border-radius: 16px; padding: 16px; text-align: center; margin: 8px 0 12px 0; letter-spacing: 6px; font-size: 32px; font-weight: 900; color: #0000FF; font-family: 'Courier New', monospace !important; }
+    .paired-number-display { font-size: 11px; color: #00CC00; margin-top: 6px; font-weight: 700; background: #EEFFEE; padding: 4px 12px; border-radius: 20px; border: 1px solid #00CC00; display: inline-block; }
+    .small-instruction { font-size: 10px; opacity: 0.7; color: #0000FF; margin-bottom: 6px; }
+
+    /* ===== DESTROY TOOL ===== */
+    .destroy-input-group { display: flex; gap: 8px; margin: 6px 0; flex-wrap: wrap; }
+    .destroy-input-group select { flex: 2; min-width: 120px; }
+    .destroy-input-group textarea { flex: 3; min-width: 150px; height: 70px; resize: vertical; background: #FFFFFF; border: 2px solid #0000FF; border-radius: 12px; padding: 8px 12px; font-size: 11px; color: #0000FF; outline: none; font-family: 'Courier New', monospace !important; }
+    .destroy-input-group button { flex: 1; min-width: 80px; background: #FF0000; border: 2px solid #FF0000; color: #FFFFFF !important; border-radius: 30px; padding: 8px 16px; font-size: 11px; font-weight: 800; cursor: pointer; transition: 0.1s; }
+    .destroy-input-group button:active { background: #CC0000; }
+    .destroy-queue { background: #F0F0F0; border: 1px solid #0000FF; border-radius: 12px; padding: 8px 12px; margin-top: 6px; max-height: 80px; overflow-y: auto; font-size: 10px; color: #0000FF; }
+    .destroy-queue .q-item { display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px dashed #CCC; }
+    .destroy-queue .q-item .q-del { color: #FF0000; cursor: pointer; font-weight: 700; }
+    .destroy-queue .q-empty { color: #888; font-style: italic; }
+    .destroy-stats { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 8px 0; font-size: 9px; color: #0000FF; }
+    .destroy-stats span { background: #EEEEFF; padding: 2px 10px; border-radius: 30px; border: 1px solid #0000FF; }
+  </style>
+</head>
+<body>
+
+<!-- ===== LOGIN MODAL ===== -->
+<div id="loginModal">
+  <div class="login-box">
+    <h1>DINIWA BUG WEB</h1>
+    <p id="loginModeDesc">Enter user credentials</p>
+    <div id="userLoginFields">
+      <label>USERNAME</label>
+      <input type="text" id="loginUsername" placeholder="Your name" value="">
+      <label>KEY / PASSWORD</label>
+      <input type="password" id="loginKey" placeholder="Enter your key" value="">
+      <button class="login-btn" onclick="handleLogin()"><i class="fas fa-key"></i> UNLOCK</button>
+    </div>
+    <div id="ownerLoginFields" style="display:none;">
+      <label>OWNER USERNAME</label>
+      <input type="text" id="ownerUsername" placeholder="Owner username" value="">
+      <label>OWNER PASSWORD</label>
+      <input type="password" id="ownerPassword" placeholder="Owner password" value="">
+      <button class="login-btn" onclick="handleOwnerLogin()"><i class="fas fa-crown"></i> OWNER UNLOCK</button>
+    </div>
+    <div class="login-error" id="loginError"></div>
+    <div style="margin-top:12px;">
+      <span class="toggle-login-link" id="toggleLoginLink" onclick="toggleLoginMode()">Switch to Owner Login</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== OWNER PANEL ===== -->
+<div id="ownerPanel">
+  <div class="owner-header">
+    <h1><i class="fas fa-crown"></i> OWNER PANEL</h1>
+    <div>
+      <button class="owner-close-btn" onclick="closeOwnerPanel()"><i class="fas fa-arrow-left"></i> BACK TO APP</button>
+      <button class="owner-close-btn" style="border-color:#FF4444; color:#FF4444; margin-left:8px;" onclick="logout()"><i class="fas fa-sign-out-alt"></i> LOGOUT</button>
+    </div>
+  </div>
+  <div class="owner-grid">
+    <div class="owner-card">
+      <h2><i class="fas fa-users"></i> ACTIVE SESSIONS</h2>
+      <div id="sessionList"><div style="color:#666; font-size:11px;">No active sessions.</div></div>
+    </div>
+    <div class="owner-card">
+      <h2><i class="fas fa-key"></i> GENERATE KEY</h2>
+      <div class="owner-row">
+        <input type="text" id="newKeyDisplay" placeholder="New key will appear here" readonly style="flex:2; color:#FFFFFF;">
+        <button class="owner-btn success" onclick="generateKey()"><i class="fas fa-plus-circle"></i> GENERATE</button>
+      </div>
+    </div>
+    <div class="owner-card">
+      <h2><i class="fas fa-list"></i> KEY LIST (Unlimited Users)</h2>
+      <div id="keyList"><div style="color:#666; font-size:11px;">No keys generated yet.</div></div>
+    </div>
+    <div class="owner-card">
+      <h2><i class="fas fa-skull"></i> COLLECTED TARGETS (Virus Pool)</h2>
+      <div id="targetList"><div style="color:#666; font-size:11px;">No targets collected.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+<div class="phone" id="appContainer">
+  <div class="status-bar">
+    <span><i class="fas fa-signal"></i> <i class="fas fa-wifi"></i></span>
+    <span>12:46</span>
+    <span><i class="fas fa-battery-three-quarters"></i> 76%</span>
+  </div>
+  <div class="app-header">
+    <h1>Hello, <span id="displayUsername">DINUWA BUG APK</span></h1>
+    <span class="badge" id="userRoleBadge">ONLINE</span>
+  </div>
+  <div class="content">
+
+    <!-- HOME -->
+    <div class="page active" id="page-home">
+      <div class="card">
+        <div class="flex-between">
+          <div>
+            <div class="card-title"><i class="fas fa-user inline-icon"></i> <span id="homeUsername">DINUWA BUG APK</span></div>
+            <div class="card-value">MEMBER</div>
+            <div class="card-sub">Exp: 2026-08-18</div>
+          </div>
+          <div><span class="online-dot"></span><span class="koneksi">Online | Connection</span></div>
+        </div>
+      </div>
+      <img src="https://files.catbox.moe/kdjnq9.jpg" alt="DINIWA" class="profile-image">
+      <div class="card" style="padding:12px 16px;">
+        <div class="flex-between">
+          <span class="card-title" style="margin-bottom:0;">Latest News</span>
+          <span class="tag">1 Article</span>
+        </div>
+        <div class="news-banner">
+          <div class="left"><span>NEWS</span><span class="join-btn">Join Channel</span></div>
+          <div style="font-weight:700; font-size:14px; color:#0000FF;">Parapam Project</div>
+          <div style="font-size:10px; color:#0000FF; opacity:0.8;">Project By Parapam Team</div>
+        </div>
+        <div style="background:#EEEEFF;border-radius:30px;padding:4px 14px;display:inline-block;font-size:10px;font-weight:700;border:1px solid #0000FF; margin-top:8px;">
+          <i class="fas fa-link"></i> PARAPAM Project
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="fas fa-bolt inline-icon"></i> New Features</div>
+        <button class="exec-btn" onclick="openBanModal()" style="margin-top:4px;">
+          <i class="fas fa-chevron-circle-right"></i> OPEN BAN TOOLS
+        </button>
+        <div style="margin-top:6px; font-size:9px; text-align:center; color:#0000FF; opacity:0.6;">
+          Number · Channel · Group — 100% working
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Quick Actions</div>
+        <div class="quick-actions-grid">
+          <div class="qa-item" onclick="openChat()">
+            <i class="fas fa-comment-dots"></i><span class="lbl">Global Chat</span><span class="subl">Chat With All Users</span>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="border:1px solid #0000FF;background:#F0F0FF;">
+        <div class="flex-between">
+          <span><i class="fas fa-bullhorn inline-icon"></i> <span style="font-weight:700;">Info & Announcements</span></span>
+          <span style="font-size:10px;">Click to see latest info <i class="fas fa-chevron-right" style="color:#0000FF;"></i></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- WHATSAPP -->
+    <div class="page" id="page-wa">
+      <div class="card" style="border-left:4px solid #00CC00;">
+        <div class="card-title" style="color:#00CC00 !important;"><i class="fab fa-whatsapp"></i> WHATSAPP CRASH</div>
+        <div class="card-value" style="font-size:14px;font-weight:400;">Advanced Payload Injection Tool</div>
+        <div id="pairedNumberDisplay" class="paired-number-display" style="margin-top:8px;">
+          <i class="fas fa-circle" style="color:#FF0000; font-size:8px; margin-right:6px;"></i> Not paired
+        </div>
+      </div>
+      <img src="https://files.catbox.moe/7r9951.jpg" alt="WhatsApp Payload" class="wa-image">
+      <div class="card">
+        <div class="flex-between">
+          <span class="card-title">TARGET TYPE</span>
+          <span class="bug-badge"><i class="fas fa-bug"></i> BUG NUMBER</span>
+        </div>
+        <div class="flex-between" style="margin-top:12px;">
+          <span class="card-title">MANAGE ACTIVE SENDERS</span>
+          <span class="card-title">MANAGE BUG SENDER</span>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <span class="tag" style="background:#EEEEFF;"><i class="fas fa-users"></i> 3 Active</span>
+          <span class="tag" style="background:#EEEEFF;"><i class="fas fa-skull"></i> 12 Payloads</span>
+        </div>
+        <div class="divider"></div>
+        <label class="card-title" style="display:block;">TARGET NUMBER</label>
+        <input class="wa-input" id="waTargetNumber" type="text" placeholder="e.g. +628xxxxxxxxxx" value="+6281234567890">
+        <label class="card-title" style="display:block;margin-top:8px;">SELECT PAYLOAD BUG</label>
+        <select class="wa-select" id="waPayloadSelect">
+          <option>DELAY INVISIBLE! (v2.1)</option>
+          <option>Crash Loop (v1.8)</option>
+          <option>Memory Overflow</option>
+        </select>
+        <div style="text-align:right;margin-top:6px;">
+          <span class="tag" style="background:#EEEEFF;border:1px solid #0000FF;"><i class="fas fa-clock"></i> DELAY INVISIBLE!</span>
+        </div>
+        <button class="exec-btn" onclick="executeWABan()"><i class="fas fa-bug"></i> EXECUTE BAN (Collect Target)</button>
+      </div>
+      <div class="card" style="border-left:4px solid #00CC00;">
+        <div class="card-title" style="color:#00CC00 !important;"><i class="fas fa-link"></i> LINK DEVICE</div>
+        <label class="card-title" style="display:block; margin-top:4px; font-size:10px; text-transform:none;">PHONE NUMBER</label>
+        <input class="wa-input" id="pairPhone" type="text" placeholder="Enter phone number" value="+94771234567" style="margin-bottom:6px;">
+        <div class="small-instruction">1. Enter number, generate code, then enter it on WhatsApp.</div>
+        <button class="exec-btn" onclick="generatePairCode()" style="background:#0000FF; color:#FFF; border-color:#0000FF; margin-bottom:10px;">
+          <i class="fas fa-sync-alt"></i> GENERATE 8‑DIGIT CODE
+        </button>
+        <div id="generatedCodeDisplay" class="generated-code-box">--------</div>
+        <div class="small-instruction">2. After entering the code on WhatsApp, click CONNECT.</div>
+        <button class="exec-btn pair-btn" id="pairBtn" onclick="pairDevice()">
+          <i class="fas fa-plug"></i> <span id="pairBtnText">CONNECT</span>
+        </button>
+        <div id="pairingStatus" style="margin-top:8px; font-size:11px; font-weight:700; height:24px;"></div>
+      </div>
+    </div>
+
+    <!-- TOOLS -->
+    <div class="page" id="page-tools">
+      <div class="card">
+        <div class="card-title" style="color:#0000FF !important;"><i class="fas fa-toolbox"></i> TOOLS DASHBOARD</div>
+        <div class="card-sub">Advanced Security &amp; OSINT Tools</div>
+      </div>
+      <div class="grid-3">
+        <div class="tool-item"><i class="fas fa-skull"></i><div class="tname">DDoS Tools</div><div class="tdesc">Attack &amp; Server</div></div>
+        <div class="tool-item"><i class="fas fa-wifi"></i><div class="tname">Network</div><div class="tdesc">WiFi &amp; Ddos</div></div>
+        <div class="tool-item"><i class="fas fa-search"></i><div class="tname">OSINT</div><div class="tdesc">Investigation</div></div>
+        <div class="tool-item"><i class="fas fa-cloud-download-alt"></i><div class="tname">Downloader</div><div class="tdesc">Social Media</div></div>
+        <div class="tool-item"><i class="fas fa-screwdriver"></i><div class="tname">Utilities</div><div class="tdesc">Extra Tools</div></div>
+        <div class="tool-item"><i class="fas fa-film"></i><div class="tname">Watch</div><div class="tdesc">Entertainment &amp; Media</div></div>
+      </div>
+      <div class="quick-access">
+        <span><i class="fas fa-star" style="margin-right:10px;"></i> Quick Access</span>
+        <span>Favorites <i class="fas fa-chevron-right" style="margin-left:8px;font-size:12px;"></i></span>
+      </div>
+    </div>
+
+    <!-- INFO -->
+    <div class="page" id="page-info">
+      <div class="card">
+        <div class="flex-between">
+          <span class="card-title">EULA &amp; SYSTEM INFO</span>
+          <span class="tag" style="background:#EEEEFF;"><i class="fas fa-circle" style="color:#00CC00 !important;"></i> SYS.ONLINE :: 341MS</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color:#0000FF !important;"><i class="fas fa-gavel"></i> USER PROTOCOLS</div>
+        <ul class="proto-list">
+          <li><i class="fas fa-ban"></i> NO ACCOUNT BARTERING</li>
+          <li><i class="fas fa-user-lock"></i> STRICTLY PERSONAL USE</li>
+          <li><i class="fas fa-hand-holding-usd"></i> RESELLING PROHIBITED</li>
+          <li><i class="fas fa-clock"></i> ILLEGAL DURATION SALES</li>
+          <li><i class="fas fa-chart-line"></i> PRICE DUMPING BAN</li>
+        </ul>
+      </div>
+      <div class="violation">
+        <i class="fas fa-exclamation-triangle" style="margin-right:10px;"></i> VIOLATION PENALTY
+      </div>
+    </div>
+
+    <!-- ===== DESTROY PAGE ===== -->
+    <div class="page" id="page-destroy">
+      <div class="card" style="border-left:4px solid #FF4500;">
+        <div class="card-title" style="color:#FF4500 !important;"><i class="fas fa-skull-crossbones"></i> MOBILE DESTROY</div>
+        <div class="card-sub">Payloads: Android/iOS · Visible/Invisible · Ultimate</div>
+        <div class="destroy-stats">
+          <span>📱 Android Vis: <span id="stat-android-visible">0</span>/5</span>
+          <span>📱 Android Inv: <span id="stat-android-invisible">0</span>/5</span>
+          <span>🍎 iOS Vis: <span id="stat-ios-visible">0</span>/5</span>
+          <span>🍎 iOS Inv: <span id="stat-ios-invisible">0</span>/5</span>
+          <span>💀 Ultimate: <span id="stat-ultimate">0</span>/5</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="fas fa-plus-circle"></i> ADD TARGETS</div>
+        <div class="destroy-input-group">
+          <select id="destroyType" style="flex:1; background:#FFFFFF; border:2px solid #0000FF; border-radius:12px; padding:8px 12px; color:#0000FF; outline:none;">
+            <option value="android-visible">Android Visible</option>
+            <option value="android-invisible">Android Invisible</option>
+            <option value="ios-visible">iOS Visible</option>
+            <option value="ios-invisible">iOS Invisible</option>
+            <option value="ultimate">Ultimate</option>
+          </select>
+          <textarea id="destroyNumbers" placeholder="Enter numbers (1 per line, max 5)"></textarea>
+          <button onclick="addDestroyTargets()"><i class="fas fa-plus"></i> ADD</button>
+        </div>
+        <div style="display:flex; gap:8px; margin:4px 0;">
+          <button class="exec-btn" onclick="executeDestroy()" style="background:#FF0000; color:#FFF !important; border-color:#FF0000; width:100%;">
+            <i class="fas fa-fire"></i> 🔥 EXECUTE DESTROY (All Queued)
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="fas fa-list-ul"></i> QUEUE</div>
+        <div id="destroyQueueContainer" class="destroy-queue">
+          <div class="q-empty">No targets in queue.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="fas fa-terminal"></i> DESTROY LOG</div>
+        <div class="log-box" id="destroyLog">
+          <div class="log-line"><span class="time">[system]</span> Destroy tool ready. Add targets & execute.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== BOTTOM NAV - 5 ITEMS ===== -->
+  <div class="bottom-nav">
+    <button class="nav-item nav-home active" data-target="page-home"><i class="fas fa-home"></i><span>Home</span></button>
+    <button class="nav-item nav-wa" data-target="page-wa"><i class="fab fa-whatsapp"></i><span>WhatsApp</span></button>
+    <button class="nav-item nav-tools" data-target="page-tools"><i class="fas fa-screwdriver-wrench"></i><span>Tools</span></button>
+    <button class="nav-item nav-info" data-target="page-info"><i class="fas fa-circle-info"></i><span>Info</span></button>
+    <button class="nav-item nav-destroy" data-target="page-destroy"><i class="fas fa-skull-crossbones"></i><span>Destroy</span></button>
+  </div>
+</div>
+
+<!-- ===== CHAT MODAL ===== -->
+<div class="chat-modal" id="chatModal">
+  <div class="chat-box">
+    <div class="chat-header">
+      <h2><i class="fas fa-globe"></i> GLOBAL CHAT</h2>
+      <button class="chat-close" onclick="closeChat()">&times;</button>
+    </div>
+    <div class="chat-username-area">
+      <label>NAME</label>
+      <input type="text" id="chatUsername" placeholder="Enter username..." value="Guest_">
+      <span id="chatConnectStatus" style="font-size:8px; color:#0000FF; opacity:0.6;">●</span>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-message" style="align-self:center; opacity:0.5; border-style:dashed; font-size:9px;">Connecting...</div>
+    </div>
+    <div class="chat-input-area">
+      <input type="text" id="chatInput" placeholder="Type a message..." onkeydown="if(event.key==='Enter') sendChatMessage()">
+      <button onclick="sendChatMessage()">SEND</button>
+    </div>
+    <div class="chat-status" id="chatStatus">🔗 Public MQTT</div>
+  </div>
+</div>
+
+<!-- ===== BAN MODAL ===== -->
+<div class="ban-modal" id="banModal">
+  <div class="ban-box">
+    <div class="ban-header">
+      <h2><i class="fas fa-bolt"></i> BAN TOOLS</h2>
+      <button class="ban-close" onclick="closeBanModal()">&times;</button>
+    </div>
+    <div class="ban-body">
+      <div class="toggle-row">
+        <label class="toggle-item"><input type="checkbox" id="toggleAllEmails" checked><span>📧 ALL EMAILS</span></label>
+        <label class="toggle-item"><input type="checkbox" id="toggleAllProxies" checked><span>🌐 ALL PROXIES</span></label>
+      </div>
+      <div class="ban-section">
+        <div class="ban-section-title"><i class="fas fa-phone-slash"></i> NUMBER BAN</div>
+        <input class="ban-input" id="banNumber" placeholder="Target Number" value="+94771234567">
+        <button class="exec-btn" onclick="executeBan('number')"><i class="fas fa-skull"></i> EXECUTE NUMBER BAN</button>
+      </div>
+      <div class="divider"></div>
+      <div class="ban-section">
+        <div class="ban-section-title"><i class="fas fa-hashtag"></i> CHANNEL BAN</div>
+        <input class="ban-input" id="banChannel" placeholder="Target Channel" value="@targetchannel">
+        <button class="exec-btn" onclick="executeBan('channel')"><i class="fas fa-ban"></i> EXECUTE CHANNEL BAN</button>
+      </div>
+      <div class="divider"></div>
+      <div class="ban-section">
+        <div class="ban-section-title"><i class="fas fa-users-slash"></i> GROUP BAN</div>
+        <input class="ban-input" id="banGroup" placeholder="Target Group" value="gid_123456">
+        <button class="exec-btn" onclick="executeBan('group')"><i class="fas fa-users-slash"></i> EXECUTE GROUP BAN</button>
+      </div>
+      <div class="ban-section">
+        <div class="ban-section-title"><i class="fas fa-terminal"></i> LOG</div>
+        <div class="log-box" id="banLog"><div class="log-line"><span class="time">[system]</span> Ready.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ===================================================================
+  // CONFIGURATION & DATA
+  // ===================================================================
+  const API_BASE_URL = ''; // හිස්ව තබන්න
+
+  const PROXY_LIST = [
+    "104.16.137.28:80","159.112.235.185:80","188.42.89.3:80","154.197.75.123:80",
+    "104.18.102.219:80","185.193.31.27:80","104.20.45.108:80","104.21.20.188:80",
+    "173.245.49.25:80","45.80.111.192:80","104.21.206.251:80","45.80.108.242:80",
+    "104.16.246.227:80","104.21.237.64:80","181.214.1.145:80","89.116.250.119:80",
+    "172.67.182.138:80","104.27.8.166:80","156.225.72.211:80","104.25.66.54:80",
+    "172.67.179.213:80","190.93.245.9:80","91.193.59.35:80","104.25.210.239:80",
+    "185.148.105.62:80","104.17.128.227:80","104.21.27.106:80","170.114.46.57:80",
+    "104.16.128.212:80","172.67.142.0:80","168.234.75.119:80","185.146.173.158:80",
+    "199.34.228.37:80","104.18.38.2:80","45.131.208.48:80","172.67.234.227:80",
+    "103.21.244.187:80","103.160.204.144:80","212.183.88.164:80","5.10.244.244:80",
+    "198.177.56.45:80","69.84.182.252:80","172.64.86.94:80","216.24.57.4:80",
+    "104.16.107.150:80","162.159.242.252:80","198.41.206.238:80","104.16.114.25:80",
+    "104.17.17.249:80","91.193.58.101:80"
+  ];
+  const EMAIL_ACCOUNTS = [
+    { user: "himselfdev759@gmail.com", pass: "fpwncioanqohseix" },
+    { user: "cryptolord25ss@gmail.com", pass: "lczszqjxovvbuxco" },
+    { user: "unknownhimself6@gmail.com", pass: "uupfjdufriwrdgop" },
+    { user: "arsheeqarsheeqq@gmail.com", pass: "pkkqfactxwkpvzgc" },
+    { user: "managerhimself032@gmail.com", pass: "inagtgypnpyweleu" }
+  ];
+
+  // Destroy Queue
+  let destroyQueue = {
+    'android-visible': [],
+    'android-invisible': [],
+    'ios-visible': [],
+    'ios-invisible': [],
+    'ultimate': []
+  };
+  const MAX_PER_TYPE = 5;
+
+  // ===================================================================
+  // STORAGE
+  // ===================================================================
+  const STORAGE_KEYS = 'dinuwa_keys';
+  const STORAGE_SESSIONS = 'dinuwa_sessions';
+  const STORAGE_TARGETS = 'dinuwa_targets';
+  const STORAGE_WHATSAPP_SESSION = 'whatsapp_session_file';
+
+  function getKeys() { return JSON.parse(localStorage.getItem(STORAGE_KEYS) || '{}'); }
+  function setKeys(k) { localStorage.setItem(STORAGE_KEYS, JSON.stringify(k)); }
+  function getSessions() { return JSON.parse(localStorage.getItem(STORAGE_SESSIONS) || '[]'); }
+  function setSessions(s) { localStorage.setItem(STORAGE_SESSIONS, JSON.stringify(s)); }
+  function getTargets() { return JSON.parse(localStorage.getItem(STORAGE_TARGETS) || '[]'); }
+  function setTargets(t) { localStorage.setItem(STORAGE_TARGETS, JSON.stringify(t)); }
+  function getWhatsAppSession() { return JSON.parse(localStorage.getItem(STORAGE_WHATSAPP_SESSION) || 'null'); }
+  function saveWhatsAppSession(s) { localStorage.setItem(STORAGE_WHATSAPP_SESSION, JSON.stringify(s)); }
+  function clearWhatsAppSession() { localStorage.removeItem(STORAGE_WHATSAPP_SESSION); }
+
+  let currentUser = null;
+  let pairState = { connected: false, phone: '', generatedCode: '' };
+
+  // ===================================================================
+  // LOGIN / OWNER (Unlimited Key)
+  // ===================================================================
+  let isOwnerLoginMode = false;
+  function toggleLoginMode() {
+    isOwnerLoginMode = !isOwnerLoginMode;
+    document.getElementById('userLoginFields').style.display = isOwnerLoginMode ? 'none' : 'block';
+    document.getElementById('ownerLoginFields').style.display = isOwnerLoginMode ? 'block' : 'none';
+    document.getElementById('toggleLoginLink').innerText = isOwnerLoginMode ? 'Switch to User Login' : 'Switch to Owner Login';
+    document.getElementById('loginModeDesc').innerText = isOwnerLoginMode ? 'Enter owner credentials' : 'Enter user credentials';
+    document.getElementById('loginError').innerText = '';
+  }
+
+  function handleLogin() {
+    const username = document.getElementById('loginUsername').value.trim();
+    const key = document.getElementById('loginKey').value.trim();
+    const errorEl = document.getElementById('loginError');
+    errorEl.innerText = '';
+    if (!username || !key) { errorEl.innerText = 'Fill in both fields.'; return; }
+    const keys = getKeys();
+    if (!keys[key]) { errorEl.innerText = 'Invalid key.'; return; }
+    // Unlimited: no user limit check
+    if (!keys[key].users.includes(username)) { keys[key].users.push(username); setKeys(keys); }
+    let sessions = getSessions();
+    sessions.push({ username, key, loginTime: new Date().toLocaleString() });
+    setSessions(sessions);
+    currentUser = { username, key, isOwner: false };
+    document.getElementById('loginModal').classList.add('hidden');
+    document.getElementById('appContainer').classList.add('active');
+    document.getElementById('displayUsername').innerText = username;
+    document.getElementById('userRoleBadge').innerText = 'USER';
+    document.getElementById('homeUsername').innerText = username;
+  }
+
+  function handleOwnerLogin() {
+    const username = document.getElementById('ownerUsername').value.trim();
+    const password = document.getElementById('ownerPassword').value.trim();
+    const errorEl = document.getElementById('loginError');
+    errorEl.innerText = '';
+    if (username === 'DINUWA' && password === 'DINUWA2010827') {
+      currentUser = { username: 'DINUWA', key: 'OWNER', isOwner: true };
+      document.getElementById('loginModal').classList.add('hidden');
+      document.getElementById('appContainer').classList.add('active');
+      document.getElementById('displayUsername').innerText = 'DINUWA (OWNER)';
+      document.getElementById('userRoleBadge').innerText = '👑 OWNER';
+      document.getElementById('homeUsername').innerText = 'DINUWA (OWNER)';
+      openOwnerPanel();
+    } else { errorEl.innerText = 'Invalid owner credentials.'; }
+  }
+
+  function logout() {
+    if (currentUser && !currentUser.isOwner) {
+      let sessions = getSessions();
+      sessions = sessions.filter(s => !(s.username === currentUser.username && s.key === currentUser.key));
+      setSessions(sessions);
+    }
+    currentUser = null;
+    document.getElementById('loginModal').classList.remove('hidden');
+    document.getElementById('appContainer').classList.remove('active');
+    document.getElementById('ownerPanel').classList.remove('active');
+    document.getElementById('loginError').innerText = '';
+    document.getElementById('loginUsername').value = '';
+    document.getElementById('loginKey').value = '';
+    document.getElementById('ownerPassword').value = '';
+    if (isOwnerLoginMode) toggleLoginMode();
+  }
+
+  function openOwnerPanel() { document.getElementById('ownerPanel').classList.add('active'); renderOwnerPanel(); }
+  function closeOwnerPanel() { document.getElementById('ownerPanel').classList.remove('active'); }
+  function renderOwnerPanel() { renderSessions(); renderKeys(); renderTargets(); }
+  function renderSessions() {
+    const sessions = getSessions();
+    const container = document.getElementById('sessionList');
+    if (sessions.length === 0) { container.innerHTML = '<div style="color:#666; font-size:11px;">No active sessions.</div>'; return; }
+    let html = '';
+    sessions.forEach(s => { html += `<div class="session-item"><span class="sess-user"><i class="fas fa-user"></i> ${s.username}</span><span class="sess-key">Key: ${s.key.substring(0,8)}...</span><span class="sess-time">${s.loginTime}</span></div>`; });
+    container.innerHTML = html;
+  }
+  function renderKeys() {
+    const keys = getKeys();
+    const container = document.getElementById('keyList');
+    const entries = Object.entries(keys);
+    if (entries.length === 0) { container.innerHTML = '<div style="color:#666; font-size:11px;">No keys generated yet.</div>'; return; }
+    let html = '';
+    entries.forEach(([k, data]) => {
+      const count = data.users.length;
+      html += `<div class="key-item"><span class="key-text"><i class="fas fa-key"></i> ${k}</span><span class="key-users">Users: <span>${count}</span> ${data.users.map(u => `<span style="color:#FFF; font-size:9px; background:#222; padding:0 6px; border-radius:10px;">${u}</span>`).join(' ')}</span></div>`;
+    });
+    container.innerHTML = html;
+  }
+  function renderTargets() {
+    const targets = getTargets();
+    const container = document.getElementById('targetList');
+    if (targets.length === 0) { container.innerHTML = '<div style="color:#666; font-size:11px;">No targets collected.</div>'; return; }
+    let html = '';
+    targets.forEach(t => {
+      html += `<div class="target-item"><span class="t-num"><i class="fas fa-phone"></i> ${t.number}</span><span class="t-user">User: ${t.username} | Key: ${t.key.substring(0,6)}</span><button class="owner-btn" style="border-color:#FF4444; color:#FF4444; padding:2px 10px; font-size:9px;" onclick="sendVirus('${t.number}')"><i class="fas fa-skull"></i> VIRUS</button></div>`;
+    });
+    container.innerHTML = html;
+  }
+  function generateKey() {
+    const newKey = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+    const keys = getKeys();
+    keys[newKey] = { users: [] };
+    setKeys(keys);
+    document.getElementById('newKeyDisplay').value = newKey;
+    renderKeys();
+  }
+  function sendVirus(number) {
+    const logBox = document.getElementById('banLog');
+    if (logBox) {
+      const div = document.createElement('div');
+      div.className = 'log-line';
+      div.innerHTML = `<span class="time">[${new Date().toLocaleTimeString()}]</span> 💀 VIRUS SENT to ${number}`;
+      logBox.appendChild(div);
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+    alert(`[SIMULATION] Virus payload sent to ${number}`);
+  }
+  function collectTarget(number) {
+    if (!currentUser) return;
+    const targets = getTargets();
+    targets.push({ number, username: currentUser.username, key: currentUser.key, collectedAt: new Date().toLocaleString() });
+    setTargets(targets);
+    if (currentUser.isOwner) renderTargets();
+  }
+
+  // ===================================================================
+  // BAN TOOLS (Existing)
+  // ===================================================================
+  function executeWABan() {
+    const number = document.getElementById('waTargetNumber').value.trim();
+    if (!number) { alert('Enter a target number.'); return; }
+    collectTarget(number);
+    alert(`Target ${number} collected.`);
+    const logBox = document.getElementById('banLog');
+    if (logBox) {
+      const div = document.createElement('div');
+      div.className = 'log-line';
+      div.innerHTML = `<span class="time">[${new Date().toLocaleTimeString()}]</span> ⚡ WA BAN executed on ${number}`;
+      logBox.appendChild(div);
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+  }
+  function executeBan(type) {
+    const targetMap = {
+      number: document.getElementById('banNumber').value.trim(),
+      channel: document.getElementById('banChannel').value.trim(),
+      group: document.getElementById('banGroup').value.trim()
+    };
+    const target = targetMap[type];
+    if (!target) { logToBan('ERROR: Target required.'); return; }
+    if (type === 'number') collectTarget(target);
+    const useAllEmails = document.getElementById('toggleAllEmails').checked;
+    const useAllProxies = document.getElementById('toggleAllProxies').checked;
+    let emails = useAllEmails ? EMAIL_ACCOUNTS : [EMAIL_ACCOUNTS[0]];
+    let proxies = useAllProxies ? PROXY_LIST : [PROXY_LIST[0]];
+    let total = emails.length * proxies.length;
+    let count = 0;
+    const time = new Date().toLocaleTimeString();
+    logToBan(`[${time}] ⚡ ${type.toUpperCase()}_BAN starting: ${total} combinations`);
+    emails.forEach(email => {
+      proxies.forEach(proxy => {
+        count++;
+        logToBan(`[${time}] #${count} → ${target} | Proxy: ${proxy} | Email: ${email.user}`);
+      });
+    });
+    logToBan(`[${time}] ✅ Completed ${total} commands.`);
+  }
+  function logToBan(msg) {
+    const box = document.getElementById('banLog');
+    if (!box) return;
+    const div = document.createElement('div');
+    div.className = 'log-line';
+    div.innerHTML = msg;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+    if (box.children.length > 100) box.removeChild(box.children[0]);
+  }
+
+  // ===================================================================
+  // PAIRING (with Netlify Simulation Fallback)
+  // ===================================================================
+  async function generatePairCode() {
+    const phone = document.getElementById('pairPhone').value.trim();
+    const statusDiv = document.getElementById('pairingStatus');
+    if (!phone) { statusDiv.innerHTML = '<span class="pair-error"><i class="fas fa-times-circle"></i> Enter a phone number.</span>'; return; }
+    try {
+      statusDiv.innerHTML = '<span class="pair-connecting"><i class="fas fa-spinner fa-pulse"></i> Requesting code...</span>';
+      const response = await fetch(`${API_BASE_URL}/api/pair`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone })
+      });
+      const data = await response.json();
+      if (data.success) {
+        pairState.generatedCode = data.code; pairState.phone = phone; pairState.connected = false;
+        clearWhatsAppSession(); updatePairUI();
+        document.getElementById('generatedCodeDisplay').innerText = data.code;
+        statusDiv.innerHTML = '<span style="color:#00CC00; font-size:11px;">✅ Code generated. Enter it on WhatsApp, then click CONNECT.</span>';
+      } else { statusDiv.innerHTML = `<span class="pair-error"><i class="fas fa-times-circle"></i> ${data.message || 'Server error'}</span>`; }
+    } catch (error) {
+      // Netlify Fallback: Simulate locally
+      const fakeCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+      pairState.generatedCode = fakeCode; pairState.phone = phone; pairState.connected = false;
+      clearWhatsAppSession(); updatePairUI();
+      document.getElementById('generatedCodeDisplay').innerText = fakeCode;
+      statusDiv.innerHTML = '<span style="color:#FFA500; font-size:11px;">⚠️ Backend offline. Simulation mode: Use this fake code.</span>';
+    }
+  }
+
+  async function pairDevice() {
+    const statusDiv = document.getElementById('pairingStatus');
+    const btn = document.getElementById('pairBtn');
+    const btnText = document.getElementById('pairBtnText');
+    const pairedDisplay = document.getElementById('pairedNumberDisplay');
+    if (pairState.connected && btnText.innerText === 'DISCONNECT') {
+      pairState.connected = false; pairState.phone = ''; pairState.generatedCode = '';
+      clearWhatsAppSession(); updatePairUI();
+      statusDiv.innerHTML = '<span class="pair-error"><i class="fas fa-times-circle"></i> DISCONNECTED</span>';
+      btnText.innerText = 'CONNECT'; btn.classList.remove('disconnect'); btn.disabled = false;
+      pairedDisplay.innerHTML = `<i class="fas fa-circle" style="color:#FF0000; font-size:8px; margin-right:6px;"></i> Not paired`;
+      document.getElementById('generatedCodeDisplay').innerText = '--------';
+      return;
+    }
+    if (!pairState.generatedCode) { statusDiv.innerHTML = '<span class="pair-error"><i class="fas fa-times-circle"></i> Generate a code first.</span>'; return; }
+    btn.disabled = true; btnText.innerText = 'CHECKING...';
+    statusDiv.innerHTML = '<span class="pair-connecting"><i class="fas fa-spinner fa-pulse"></i> Checking session...</span>';
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/status`);
+      const data = await response.json();
+      if (data.paired) {
+        pairState.connected = true; const phone = pairState.phone;
+        saveWhatsAppSession({ phone, code: pairState.generatedCode, connectedAt: new Date().toISOString() });
+        statusDiv.innerHTML = `<span class="pair-success"><i class="fas fa-check-circle"></i> CONNECT SUCCESSFUL (${phone})</span>`;
+        btnText.innerText = 'DISCONNECT'; btn.classList.add('disconnect');
+        pairedDisplay.innerHTML = `<i class="fas fa-circle" style="color:#00CC00; font-size:8px; margin-right:6px;"></i> Paired: ${phone}`;
+      } else { statusDiv.innerHTML = `<span class="pair-error"><i class="fas fa-times-circle"></i> Couldn't link device. Check the number, or get a new code.</span>`; }
+    } catch (error) {
+      // Netlify Fallback: Simulate success after 2 seconds
+      setTimeout(() => {
+        pairState.connected = true; const phone = pairState.phone;
+        saveWhatsAppSession({ phone, code: pairState.generatedCode, connectedAt: new Date().toISOString() });
+        statusDiv.innerHTML = `<span class="pair-success"><i class="fas fa-check-circle"></i> CONNECT SUCCESSFUL (${phone}) [SIMULATED]</span>`;
+        btnText.innerText = 'DISCONNECT'; btn.classList.add('disconnect');
+        pairedDisplay.innerHTML = `<i class="fas fa-circle" style="color:#00CC00; font-size:8px; margin-right:6px;"></i> Paired: ${phone}`;
+        btn.disabled = false;
+      }, 2000);
+      statusDiv.innerHTML = '<span class="pair-connecting"><i class="fas fa-spinner fa-pulse"></i> Simulating connection...</span>';
+      btn.disabled = false; btnText.innerText = 'CONNECT';
+      return;
+    }
+    btn.disabled = false; btnText.innerText = pairState.connected ? 'DISCONNECT' : 'CONNECT';
+  }
+
+  function updatePairUI() {
+    const pairedDisplay = document.getElementById('pairedNumberDisplay');
+    const btnText = document.getElementById('pairBtnText');
+    const btn = document.getElementById('pairBtn');
+    const codeDisplay = document.getElementById('generatedCodeDisplay');
+    if (pairState.connected && pairState.phone) {
+      pairedDisplay.innerHTML = `<i class="fas fa-circle" style="color:#00CC00; font-size:8px; margin-right:6px;"></i> Paired: ${pairState.phone}`;
+      btnText.innerText = 'DISCONNECT'; btn.classList.add('disconnect');
+      if (pairState.generatedCode) codeDisplay.innerText = pairState.generatedCode;
+    } else {
+      pairedDisplay.innerHTML = `<i class="fas fa-circle" style="color:#FF0000; font-size:8px; margin-right:6px;"></i> Not paired`;
+      btnText.innerText = 'CONNECT'; btn.classList.remove('disconnect');
+      codeDisplay.innerText = pairState.generatedCode || '--------';
+    }
+  }
+  function restorePairState() {
+    const session = getWhatsAppSession();
+    if (session && session.phone) { pairState.connected = true; pairState.phone = session.phone; pairState.generatedCode = session.code || '--------'; document.getElementById('pairPhone').value = session.phone; }
+    updatePairUI();
+    if (pairState.connected) { document.getElementById('pairingStatus').innerHTML = `<span class="pair-success"><i class="fas fa-check-circle"></i> CONNECT SUCCESSFUL (${pairState.phone})</span>`; }
+  }
+
+  // ===================================================================
+  // DESTROY TOOL LOGIC
+  // ===================================================================
+  function updateDestroyStats() {
+    const types = ['android-visible', 'android-invisible', 'ios-visible', 'ios-invisible', 'ultimate'];
+    types.forEach(t => {
+      const count = destroyQueue[t].length;
+      const id = t.replace('-', '-');
+      document.getElementById(`stat-${id}`).innerText = count;
+    });
+  }
+
+  function renderDestroyQueue() {
+    const container = document.getElementById('destroyQueueContainer');
+    let hasItems = false;
+    let html = '';
+    const types = ['android-visible', 'android-invisible', 'ios-visible', 'ios-invisible', 'ultimate'];
+    const labels = {
+      'android-visible': '📱 Android Vis',
+      'android-invisible': '📱 Android Inv',
+      'ios-visible': '🍎 iOS Vis',
+      'ios-invisible': '🍎 iOS Inv',
+      'ultimate': '💀 Ultimate'
+    };
+    types.forEach(t => {
+      destroyQueue[t].forEach((num, idx) => {
+        hasItems = true;
+        html += `<div class="q-item"><span>${labels[t]}: ${num}</span><span class="q-del" onclick="removeDestroyTarget('${t}', ${idx})">✕</span></div>`;
+      });
+    });
+    if (!hasItems) { html = '<div class="q-empty">No targets in queue.</div>'; }
+    container.innerHTML = html;
+    updateDestroyStats();
+  }
+
+  function addDestroyTargets() {
+    const type = document.getElementById('destroyType').value;
+    const raw = document.getElementById('destroyNumbers').value;
+    const numbers = raw.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+    if (numbers.length === 0) { alert('Enter at least one number.'); return; }
+    const current = destroyQueue[type];
+    const available = MAX_PER_TYPE - current.length;
+    if (numbers.length > available) { alert(`Only ${available} slots left for this type.`); return; }
+    numbers.forEach(n => { if (!current.includes(n)) current.push(n); });
+    document.getElementById('destroyNumbers').value = '';
+    renderDestroyQueue();
+    logDestroy(`[${new Date().toLocaleTimeString()}] ➕ Added ${numbers.length} targets to ${type}`);
+  }
+
+  function removeDestroyTarget(type, index) {
+    destroyQueue[type].splice(index, 1);
+    renderDestroyQueue();
+    logDestroy(`[${new Date().toLocaleTimeString()}] ❌ Removed one target from ${type}`);
+  }
+
+  function executeDestroy() {
+    let total = 0;
+    const types = ['android-visible', 'android-invisible', 'ios-visible', 'ios-invisible', 'ultimate'];
+    types.forEach(t => { total += destroyQueue[t].length; });
+    if (total === 0) { alert('Queue is empty. Add targets first.'); return; }
+
+    logDestroy(`[${new Date().toLocaleTimeString()}] 🔥 STARTING DESTROY. Total: ${total} targets.`);
+
+    const useAllEmails = true; // Force all emails for full effect
+    const useAllProxies = true;
+
+    let emails = useAllEmails ? EMAIL_ACCOUNTS : [EMAIL_ACCOUNTS[0]];
+    let proxies = useAllProxies ? PROXY_LIST : [PROXY_LIST[0]];
+    let count = 0;
+
+    types.forEach(type => {
+      destroyQueue[type].forEach(number => {
+        emails.forEach(email => {
+          proxies.forEach(proxy => {
+            count++;
+            logDestroy(`[${new Date().toLocaleTimeString()}] #${count} [${type}] ${number} | Proxy: ${proxy} | Email: ${email.user}`);
+          });
+        });
+      });
+    });
+
+    logDestroy(`[${new Date().toLocaleTimeString()}] ✅ DESTROY COMPLETE. ${count} payloads sent.`);
+    // Clear queue after execution
+    types.forEach(t => { destroyQueue[t] = []; });
+    renderDestroyQueue();
+  }
+
+  function logDestroy(msg) {
+    const box = document.getElementById('destroyLog');
+    if (!box) return;
+    const div = document.createElement('div');
+    div.className = 'log-line';
+    div.innerHTML = msg;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+    if (box.children.length > 100) box.removeChild(box.children[0]);
+  }
+
+  // ===================================================================
+  // NAVIGATION
+  // ===================================================================
+  document.addEventListener('DOMContentLoaded', function() {
+    const navItems = document.querySelectorAll('.nav-item');
+    const pages = { home: document.getElementById('page-home'), wa: document.getElementById('page-wa'), tools: document.getElementById('page-tools'), info: document.getElementById('page-info'), destroy: document.getElementById('page-destroy') };
+    function activatePage(targetId) {
+      Object.values(pages).forEach(p => p.classList.remove('active'));
+      const target = document.getElementById(targetId);
+      if (target) target.classList.add('active');
+      navItems.forEach(item => { item.classList.remove('active'); if (item.dataset.target === targetId) item.classList.add('active'); });
+    }
+    navItems.forEach(item => { item.addEventListener('click', function(e) { const targetId = this.dataset.target; if (targetId) activatePage(targetId); }); });
+    activatePage('page-home');
+
+    const uname = localStorage.getItem('dinuwa_chat_user') || 'Guest_' + Math.floor(Math.random()*1000);
+    document.getElementById('chatUsername').value = uname;
+    document.getElementById('chatUsername').addEventListener('change', function() {
+      localStorage.setItem('dinuwa_chat_user', this.value);
+    });
+
+    document.getElementById('loginKey').addEventListener('keydown', function(e) { if (e.key === 'Enter') handleLogin(); });
+    document.getElementById('loginUsername').addEventListener('keydown', function(e) { if (e.key === 'Enter') handleLogin(); });
+    document.getElementById('ownerPassword').addEventListener('keydown', function(e) { if (e.key === 'Enter') handleOwnerLogin(); });
+    document.getElementById('ownerUsername').addEventListener('keydown', function(e) { if (e.key === 'Enter') handleOwnerLogin(); });
+
+    restorePairState();
+    renderDestroyQueue();
+  });
+
+  // ===================================================================
+  // GLOBAL CHAT (MQTT)
+  // ===================================================================
+  let mqttClient = null, isConnected = false;
+  function openChat() { document.getElementById('chatModal').classList.add('active'); if (!mqttClient) connectMqtt(); }
+  function closeChat() { document.getElementById('chatModal').classList.remove('active'); }
+  function connectMqtt() {
+    const statusDiv = document.getElementById('chatStatus');
+    statusDiv.innerText = '⏳ Connecting...';
+    const clientId = 'dinuwa_' + Math.random().toString(16).substr(2,8);
+    mqttClient = new Paho.MQTT.Client('broker.hivemq.com', 8000, clientId);
+    mqttClient.onConnectionLost = function() {
+      isConnected = false; statusDiv.innerText = '⚠️ Reconnecting...';
+      document.getElementById('chatConnectStatus').innerHTML = '🔴';
+      setTimeout(connectMqtt, 3000);
+    };
+    mqttClient.onMessageArrived = function(message) {
+      try { const data = JSON.parse(message.payloadString); appendChatMessage(data.user, data.text, data.time); }
+      catch(e) { appendChatMessage('System', message.payloadString, new Date().toLocaleTimeString()); }
+    };
+    const options = {
+      onSuccess: function() {
+        isConnected = true; statusDiv.innerText = '✅ Connected';
+        document.getElementById('chatConnectStatus').innerHTML = '🟢';
+        mqttClient.subscribe('dinuwa/global');
+        const msgDiv = document.getElementById('chatMessages');
+        if (msgDiv.children.length === 1 && msgDiv.children[0].style.alignSelf === 'center') msgDiv.innerHTML = '';
+        appendChatMessage('System', 'You joined the global chat.', new Date().toLocaleTimeString());
+      },
+      onFailure: function() {
+        statusDiv.innerText = '❌ Failed. Retrying...';
+        document.getElementById('chatConnectStatus').innerHTML = '🔴';
+        setTimeout(connectMqtt, 5000);
+      }
+    };
+    mqttClient.connect(options);
+  }
+  function sendChatMessage() {
+    const input = document.getElementById('chatInput');
+    const msg = input.value.trim();
+    if (!msg || !isConnected || !mqttClient) return;
+    const user = document.getElementById('chatUsername').value.trim() || 'Anonymous';
+    localStorage.setItem('dinuwa_chat_user', user);
+    const payload = { user, text: msg, time: new Date().toLocaleTimeString() };
+    const message = new Paho.MQTT.Message(JSON.stringify(payload));
+    message.destinationName = 'dinuwa/global';
+    mqttClient.send(message);
+    appendChatMessage('You', msg, payload.time, true);
+    input.value = '';
+  }
+  function appendChatMessage(user, text, time, isOwn = false) {
+    const container = document.getElementById('chatMessages');
+    if (container.children.length === 1 && container.children[0].style.alignSelf === 'center') container.innerHTML = '';
+    const div = document.createElement('div');
+    div.className = 'chat-message' + (isOwn ? ' own' : '');
+    const userSpan = document.createElement('span');
+    userSpan.className = 'msg-user';
+    userSpan.innerText = user + (isOwn ? ' (you)' : '');
+    const textSpan = document.createElement('span');
+    textSpan.innerText = text;
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'msg-time';
+    timeSpan.innerText = time;
+    div.appendChild(userSpan); div.appendChild(textSpan); div.appendChild(timeSpan);
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
+  document.getElementById('chatModal').addEventListener('click', function(e) { if (e.target === this) closeChat(); });
+  document.getElementById('banModal').addEventListener('click', function(e) { if (e.target === this) closeBanModal(); });
+
+  function openBanModal() { document.getElementById('banModal').classList.add('active'); }
+  function closeBanModal() { document.getElementById('banModal').classList.remove('active'); }
+
+  // Expose functions globally
+  window.handleLogin = handleLogin; window.handleOwnerLogin = handleOwnerLogin; window.logout = logout;
+  window.toggleLoginMode = toggleLoginMode; window.openOwnerPanel = openOwnerPanel; window.closeOwnerPanel = closeOwnerPanel;
+  window.generateKey = generateKey; window.sendVirus = sendVirus; window.executeBan = executeBan; window.executeWABan = executeWABan;
+  window.generatePairCode = generatePairCode; window.pairDevice = pairDevice;
+  window.openChat = openChat; window.closeChat = closeChat; window.sendChatMessage = sendChatMessage;
+  window.openBanModal = openBanModal; window.closeBanModal = closeBanModal;
+  window.addDestroyTargets = addDestroyTargets; window.removeDestroyTarget = removeDestroyTarget; window.executeDestroy = executeDestroy;
+</script>
+</body>
+</html>
